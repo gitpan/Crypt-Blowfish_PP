@@ -1,8 +1,8 @@
 print "1..3\n";
 
-use Crypt::Blowfish;
+use Crypt::Blowfish_PP;
 
-my $blowfish=new Crypt::Blowfish(pack("H32","0123456789abcdef0123456789abcdef"));
+my $blowfish=new Crypt::Blowfish_PP(pack("H32","0123456789abcdef0123456789abcdef"));
 print "not " if(!defined($blowfish));
 print "ok 1\n";
 

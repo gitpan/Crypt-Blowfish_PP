@@ -1,3 +1,4 @@
+v1.03	-	Changed t/blowfish.t to use the Blowfish_PP module.
 v1.02	-	Changed name to Crypt::Blowfish_PP to fix compatibility
 		issues with Dave Paris's Crypt::Blowfish module written
 		in C.
