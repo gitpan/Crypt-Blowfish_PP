@@ -35,7 +35,7 @@ package Crypt::Blowfish_PP;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="1.03";
+$VERSION="1.10";
 
 =head2 B<new>(I<key>)
 
@@ -337,21 +337,21 @@ sub new
 		}
 	my $j=0;
 	my $i=0;
+	my($l,$r)=(0,0);
+
 	# BEGIN PROCESS OF SETTING UP S & P-BOXES FOR THE KEY
 	for ($i=0;$i<18;$i++)
 		{
-		my $temp=	($keybytes[$j]*16777216) +
-				($keybytes[($j+1)%($keylen)]*65536) +
-				($keybytes[($j+2)%($keylen)]*256) +
+		my $temp=	($keybytes[$j]<<24) +
+				($keybytes[($j+1)%($keylen)]<<16) +
+				($keybytes[($j+2)%($keylen)]<<8) +
 				($keybytes[($j+3)%($keylen)]) ;
 		$h{"p_boxes"}->[$i]^=$temp;
 		$j=($j+4)%($keylen);
 		}
-	my $data=pack("H16","0000000000000000");
 	for ($i=0;$i<18;$i+=2)
 		{
-		$data=encrypt(\%h,$data);
-		my($l,$r)=unpack("NN",$data);
+		($l,$r)=crypt_block(\%h,$l,$r,0);
 		$h{"p_boxes"}->[$i]=$l;
 		$h{"p_boxes"}->[$i+1]=$r;
 		}
@@ -359,8 +359,7 @@ sub new
 		{
 		for($j=0;$j<256;$j+=2)
 			{
-			$data=encrypt(\%h,$data);
-			my($l,$r)=unpack("NN",$data);
+			($l,$r)=crypt_block(\%h,$l,$r,0);
 			$h{"s_boxes"}->[$i]->[$j]=$l;
 			$h{"s_boxes"}->[$i]->[$j+1]=$r;
 			}
@@ -372,15 +371,65 @@ sub new
 
 sub F
 	{
-	$_[0]->{"s_boxes"}->[0]->[($_[1]&0xFF000000)>>24]+
-	$_[0]->{"s_boxes"}->[1]->[($_[1]&0x00FF0000)>>16]+
-	$_[0]->{"s_boxes"}->[2]->[($_[1]&0x0000FF00)>>8]+
-	$_[0]->{"s_boxes"}->[3]->[$_[1]&0x000000FF];
+	my $S0=$_[0]->{"s_boxes"}->[0]->[($_[1]&0xFF000000)>>24];
+	my $S1=$_[0]->{"s_boxes"}->[1]->[($_[1]&0x00FF0000)>>16];
+	my $S2=$_[0]->{"s_boxes"}->[2]->[($_[1]&0x0000FF00)>>8];
+	my $S3=$_[0]->{"s_boxes"}->[3]->[($_[1]&0x000000FF)];
+	# this is horrid, but otherwise Perl overflows. :(
+	if($S0>$S1)
+		{
+		$S0=$S0-4294967296 if($S0>2147483647);
+		}
+	else
+		{
+		$S1=$S1-4294967296 if($S1>2147483647);
+		}
+	my $F=($S0+$S1);
+	$F+=4294967296 if($F<0);
+	$F^=$S2;
+	if($F>$S3)
+		{
+		$F=$F-4294967296 if($F>2147483647);
+		}
+	else
+		{
+		$S3=$S3-4294967296 if($S3>2147483647);
+		}
+	$F+=$S3;
+	$F&=0xFFFFFFFF;
+	return $F;
 	}
 
 sub ROUND
 	{
-	return($_[1]^(F($_[0],$_[2])^($_[0]->{"p_boxes"}->[$_[3]])))
+	return($_[1],($_[2]^($_[0]->{"p_boxes"}->[$_[3]]))^F($_[0],$_[1]));
+	}
+
+sub crypt_block
+	{
+	my $self=shift;
+	my $l=shift;
+	my $r=shift;
+	my $d=shift;
+	if(!$d)
+		{
+		$l^=$self->{"p_boxes"}->[0];
+		for my $i (1..16)
+			{
+			($r,$l)=ROUND($self,$l,$r,$i);
+			}
+		$r^=$self->{"p_boxes"}->[17];
+		}
+	else
+		{
+		$l^=$self->{"p_boxes"}->[17];
+		for my $i (1..16)
+			{
+			($r,$l)=ROUND($self,$l,$r,17-$i);
+			}
+		$r^=$self->{"p_boxes"}->[0];
+		}
+	return($r,$l);
 	}
 
 =head2 B<encrypt>(I<block>)
@@ -394,28 +443,20 @@ sub encrypt
 	{
 	my($self)=shift;
 	my($block)=shift;
-	my($l,$r)=unpack("NN",$block);
+	my(@block)=split//,$block;
+	map{$_=unpack("C",$_)}@block;
+	# I'm not sure what endianness these are.... so hey.
+	my($l)=$block[3]|($block[2]<<8)|($block[1]<<16)|($block[0]<<24);
+	my($r)=$block[7]|($block[6]<<8)|($block[5]<<16)|($block[4]<<24);
+	
+	($l,$r)=crypt_block($self,$l,$r,0);
 
-	$l^=$self->{"p_boxes"}->[0];
-	$r=ROUND($self,$r,$l,1);
-	$l=ROUND($self,$l,$r,2);
-	$r=ROUND($self,$r,$l,3);
-	$l=ROUND($self,$l,$r,4);
-	$r=ROUND($self,$r,$l,5);
-	$l=ROUND($self,$l,$r,6);
-	$r=ROUND($self,$r,$l,7);
-	$l=ROUND($self,$l,$r,8);
-	$r=ROUND($self,$r,$l,9);
-	$l=ROUND($self,$l,$r,10);
-	$r=ROUND($self,$r,$l,11);
-	$l=ROUND($self,$l,$r,12);
-	$r=ROUND($self,$r,$l,13);
-	$l=ROUND($self,$l,$r,14);
-	$r=ROUND($self,$r,$l,15);
-	$l=ROUND($self,$l,$r,16);
-	$r^=$self->{"p_boxes"}->[17];
-
-	return pack("NN",$r,$l);
+	@block=(
+		$l>>24,($l>>16)&0xFF,($l>>8)&0xFF,$l&0xFF,
+		$r>>24,($r>>16)&0xFF,($r>>8)&0xFF,$r&0xFF
+		);
+	map{$_=pack("C",$_)}@block;
+	return join"",@block;
 	}
 
 =head2 B<decrypt>(I<block>)
@@ -429,28 +470,19 @@ sub decrypt
 	{
 	my($self)=shift;
 	my($block)=shift;
-	my($l,$r)=unpack("NN",$block);
+	my(@block)=split//,$block;
+	map{$_=unpack("C",$_)}@block;
+	my($l)=$block[3]|($block[2]<<8)|($block[1]<<16)|($block[0]<<24);
+	my($r)=$block[7]|($block[6]<<8)|($block[5]<<16)|($block[4]<<24);
+	
+	($l,$r)=crypt_block($self,$l,$r,1);
 
-	$l^=$self->{"p_boxes"}->[17];
-	$r=ROUND($self,$r,$l,16);
-	$l=ROUND($self,$l,$r,15);
-	$r=ROUND($self,$r,$l,14);
-	$l=ROUND($self,$l,$r,13);
-	$r=ROUND($self,$r,$l,12);
-	$l=ROUND($self,$l,$r,11);
-	$r=ROUND($self,$r,$l,10);
-	$l=ROUND($self,$l,$r,9);
-	$r=ROUND($self,$r,$l,8);
-	$l=ROUND($self,$l,$r,7);
-	$r=ROUND($self,$r,$l,6);
-	$l=ROUND($self,$l,$r,5);
-	$r=ROUND($self,$r,$l,4);
-	$l=ROUND($self,$l,$r,3);
-	$r=ROUND($self,$r,$l,2);
-	$l=ROUND($self,$l,$r,1);
-	$r^=$self->{"p_boxes"}->[0];
-
-	return pack("NN",$r,$l);
+	@block=(
+		$l>>24,($l>>16)&0xFF,($l>>8)&0xFF,$l&0xFF,
+		$r>>24,($r>>16)&0xFF,($r>>8)&0xFF,$r&0xFF
+		);
+	map{$_=pack("C",$_)}@block;
+	return join"",@block;
 	}
 
 sub blocksize
@@ -460,7 +492,7 @@ sub blocksize
 
 sub keysize
 	{
-	return 18;
+	return 56;
 	}
 
 =head1 COMMENTS

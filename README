@@ -16,6 +16,8 @@ I have not included any sort of multiblock structure in this implementation
 (I might do in future), so to be useful you will probably need something
 like Crypt::CBC. (v1.01 fixes the compatibility issues with Crypt::CBC)
 
+This passes the test vectors on http://www.counterpane.com/vectors.txt
+
 To install, untar the module
 
 do the standard:
