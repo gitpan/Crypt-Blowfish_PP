@@ -35,7 +35,7 @@ package Crypt::Blowfish_PP;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="1.10";
+$VERSION="1.11";
 
 =head2 B<new>(I<key>)
 
@@ -329,7 +329,7 @@ sub new
 			]
 		);
 	my $keylen=length($key);
-	return undef if(($keylen < 8) || ($keylen > 18));
+	return undef if(($keylen < 8) || ($keylen > 56));
 	my @keybytes=split//,$key;
 	for my $b (@keybytes)
 		{
