@@ -1,8 +1,9 @@
-# This is Crypt/Blowfish_PP.pm which is an implementation of Bruce Schneier's blowfish
-#   cryptographic algorithm. I will write some proper docs when I get time....
-#   code is (c) copyright Matthew Byng-Maddick <matthew@codix.net> 2000, and some
-#   bits are copyright Bruce Schneier. For more information see his website at
-#   http://www.counterpane.com/
+# This is Crypt/Blowfish_PP.pm which is an implementation of Bruce Schneier's
+#   blowfish cryptographic algorithm. I will write some proper docs when I get
+#   time....
+#   code is (c) copyright Matthew Byng-Maddick <mbm@colondot.net> 2000-2001, and
+#   some bits are copyright Bruce Schneier. For more information see his website
+#   at http://www.counterpane.com/
 
 =head1 NAME
 
@@ -10,7 +11,7 @@ B<Crypt::Blowfish_PP> - Blowfish encryption algorithm implemented purely in Perl
 
 =head1 SYNOPSIS
 
-C<use Crypt::Blowfish_PP>
+C<use Crypt::Blowfish_PP>;
 
 $blowfish=new Crypt::Blowfish_PP($key);
 
@@ -23,9 +24,9 @@ $plaintextBlock=$blowfish->decrypt($ciphertextBlock);
 The B<Crypt::Blowfish_PP> module provides for users to use the Blowfish encryption
 algorithm in perl. The implementation is entirely Object Oriented, as there is
 quite a lot of context inherent in making blowfish as fast as it is. The key is
-anywhere between 64 and 144 bits, and should be passed as a packed string. The
-transformation itself is a 16-round Feistel Network, and operates on a 64 bit
-block.
+anywhere between 64 and 448 bits (8 and 56 bytes), and should be passed as a
+packed string. The transformation itself is a 16-round Feistel Network, and
+operates on a 64 bit block.
 
 Object methods for the Crypt::Blowfish_PP module:
 
@@ -35,7 +36,7 @@ package Crypt::Blowfish_PP;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="1.11";
+$VERSION="1.12";
 
 =head2 B<new>(I<key>)
 
@@ -331,7 +332,8 @@ sub new
 	my $keylen=length($key);
 	return undef if(($keylen < 8) || ($keylen > 56));
 	my @keybytes=split//,$key;
-	for my $b (@keybytes)
+	my $b;
+	for $b (@keybytes)
 		{
 		$b=unpack("C",$b);
 		}
@@ -414,7 +416,8 @@ sub crypt_block
 	if(!$d)
 		{
 		$l^=$self->{"p_boxes"}->[0];
-		for my $i (1..16)
+		my $i;
+		for $i (1..16)
 			{
 			($r,$l)=ROUND($self,$l,$r,$i);
 			}
@@ -423,7 +426,8 @@ sub crypt_block
 	else
 		{
 		$l^=$self->{"p_boxes"}->[17];
-		for my $i (1..16)
+		my $i;
+		for $i (1..16)
 			{
 			($r,$l)=ROUND($self,$l,$r,17-$i);
 			}
@@ -504,7 +508,7 @@ If you want speed, then see the Crypt::Blowfish module.
 
 =head1 AUTHOR
 
-Matthew Byng-Maddick <C<matthew@codix.net>>
+Matthew Byng-Maddick <C<mbm@colondot.net>>
 
 =head1 SEE ALSO
 

@@ -1,3 +1,10 @@
+v1.12	-	Fixed typo in POD where 144 bits should have said 448 bits
+		for the key length. Also changed syntax of "for my $var" to
+		"my $var; for $var" to maintain backward compatibility.
+		Also, please note new email address, as the old one might
+		stop working soon... :)
+v1.11	-	Fixed a bug where I couldn't count so that 1.10 didn't
+		work with Crypt::CBC
 v1.10	-	Fixed most of the bugs, so it now is SSLeay compatible.
 		Bugs fixed include:
 		+ Perl overflows if you add large numbers, rather than
