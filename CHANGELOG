@@ -1,0 +1,6 @@
+v1.02	-	Changed name to Crypt::Blowfish_PP to fix compatibility
+		issues with Dave Paris's Crypt::Blowfish module written
+		in C.
+v1.01	-	Fixed compatibility issues with blocksize() and keysize()
+		needed by Crypt::CBC
+v1.00	-	First release, implements block encryption and decryption.
